@@ -22,21 +22,16 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('timer').innerText = "Time: " + elapsedSeconds + "s";
     }
 
-    // --- VALIDATION: Accept any Hamiltonian path that meets the conditions ---
     // Check that:
     // 1. The drawn path covers every cell exactly once.
-    // 2. For every cell that has a number (in boardConfig.cells), its order
-    //    in the drawn path is in ascending order.
+    // 2. For every cell that has a number, its order in the drawn path is in ascending order.
     function checkSolution() {
         if (path.length !== totalCells) return false;
-        // Check uniqueness.
         const seen = new Set();
         for (const cell of path) {
             seen.add(cell.row + "_" + cell.col);
         }
         if (seen.size !== totalCells) return false;
-
-        // Gather the numbered cells from boardConfig.
         let numbered = [];
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
@@ -48,23 +43,40 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         }
-        // Sort by the number value.
         numbered.sort((a, b) => a.num - b.num);
-        // Check that indices are strictly increasing.
         for (let i = 0; i < numbered.length - 1; i++) {
-            if (numbered[i].index >= numbered[i + 1].index) {
-                return false;
-            }
+            if (numbered[i].index >= numbered[i + 1].index) return false;
         }
         return true;
     }
-    // --- END VALIDATION ---
 
-    // Draw grid and numbered cells.
+    // Check if a move from 'from' to 'to' is allowed (i.e. no wall between them).
+    function isMoveAllowed(from, to) {
+        // Must be adjacent.
+        if (from.row === to.row) {
+            if (to.col === from.col + 1) {
+                // Moving right: check vertical wall at [from.row][from.col+1]
+                return boardConfig.verticalWalls[from.row][from.col + 1] === false;
+            } else if (to.col === from.col - 1) {
+                // Moving left: check vertical wall at [from.row][from.col]
+                return boardConfig.verticalWalls[from.row][from.col] === false;
+            }
+        } else if (from.col === to.col) {
+            if (to.row === from.row + 1) {
+                // Moving down: check horizontal wall at [from.row+1][from.col]
+                return boardConfig.horizontalWalls[from.row + 1][from.col] === false;
+            } else if (to.row === from.row - 1) {
+                // Moving up: check horizontal wall at [from.row][from.col]
+                return boardConfig.horizontalWalls[from.row][from.col] === false;
+            }
+        }
+        return false;
+    }
+
     function drawBoard() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // Draw grid lines (thin).
+        // Draw grid lines.
         ctx.strokeStyle = 'black';
         ctx.lineWidth = 1;
         for (let i = 0; i <= rows; i++) {
@@ -80,14 +92,13 @@ document.addEventListener('DOMContentLoaded', function () {
             ctx.stroke();
         }
 
-        // Draw numbered cells (orange background with black text).
+        // Draw numbered cells.
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
                 const num = boardConfig.cells[r][c];
                 if (num > 0) {
                     ctx.fillStyle = 'orange';
                     ctx.fillRect(c * cellWidth, r * cellHeight, cellWidth, cellHeight);
-
                     ctx.fillStyle = 'black';
                     ctx.font = '20px Arial';
                     ctx.textAlign = 'center';
@@ -98,7 +109,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Draw the user's drawn path with a thick blue line.
+    // Draw the user's drawn path.
     function drawPath() {
         if (path.length === 0) return;
         ctx.beginPath();
@@ -133,7 +144,6 @@ document.addEventListener('DOMContentLoaded', function () {
         drawPath();
     }
 
-    // Convert mouse/touch event coordinates to a grid cell.
     function getCellFromEvent(e) {
         const rect = canvas.getBoundingClientRect();
         let clientX, clientY;
@@ -151,7 +161,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return { row, col };
     }
 
-    // Event handlers for drawing.
     function startDrawing(e) {
         if (gameSolved) return;
         e.preventDefault();
@@ -167,14 +176,11 @@ document.addEventListener('DOMContentLoaded', function () {
         e.preventDefault();
         const cell = getCellFromEvent(e);
         const last = path[path.length - 1];
-        // Allow only moves to adjacent cells.
         if (manhattanDistance(cell, last) !== 1) return;
         if (sameCell(cell, last)) return;
-
-        // Check if cell is already in path.
+        if (!isMoveAllowed(last, cell)) return; // Check walls.
         const idx = path.findIndex(c => sameCell(c, cell));
         if (idx !== -1) {
-            // Allow backtracking if cell is immediately before the last.
             if (idx === path.length - 2) {
                 path.pop();
                 redraw();
@@ -185,8 +191,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         path.push(cell);
         redraw();
-
-        // If all cells have been used, validate.
         if (path.length === totalCells && checkSolution()) {
             gameSolved = true;
             clearInterval(timerInterval);
@@ -202,7 +206,6 @@ document.addEventListener('DOMContentLoaded', function () {
         drawing = false;
     }
 
-    // Attach mouse and touch events.
     canvas.addEventListener('mousedown', startDrawing);
     canvas.addEventListener('mousemove', continueDrawing);
     canvas.addEventListener('mouseup', endDrawing);
@@ -212,11 +215,14 @@ document.addEventListener('DOMContentLoaded', function () {
     canvas.addEventListener('touchend', endDrawing);
     canvas.addEventListener('touchcancel', endDrawing);
 
-    // "Start Over" button reloads the page.
     document.getElementById('startOverButton').addEventListener('click', function() {
+        // Reload the same puzzle.
         location.reload();
     });
+    document.getElementById('newGameButton').addEventListener('click', function() {
+        // Navigate to the NewGame action.
+        window.location.href = "/Game/NewGame";
+    });
 
-    // Initial draw.
     redraw();
 });

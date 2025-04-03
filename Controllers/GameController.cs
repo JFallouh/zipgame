@@ -12,5 +12,13 @@ namespace zipgame.Controllers
             var board = GameBoard.CreateDefaultBoard();
             return View(board);
         }
+
+        // GET: /Game/NewGame
+        public IActionResult NewGame()
+        {
+            // Generate a completely new board (with a different solution).
+            var board = GameBoard.CreateDefaultBoard();
+            return View("Index", board);
+        }
     }
 }

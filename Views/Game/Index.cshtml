@@ -24,6 +24,30 @@
                     <text>]</text>
                     if (i < rows - 1) { <text>,</text> }
                 }
+            ],
+            verticalWalls: [
+                @for (int i = 0; i < rows; i++)
+                {
+                    <text>[</text>
+                    for (int j = 0; j < cols + 1; j++)
+                    {
+                        <text>@Model.VerticalWalls[i, j].ToString().ToLower()@((j < cols) ? "," : "")</text>
+                    }
+                    <text>]</text>
+                    if (i < rows - 1) { <text>,</text> }
+                }
+            ],
+            horizontalWalls: [
+                @for (int i = 0; i < rows + 1; i++)
+                {
+                    <text>[</text>
+                    for (int j = 0; j < cols; j++)
+                    {
+                        <text>@Model.HorizontalWalls[i, j].ToString().ToLower()@((j < cols - 1) ? "," : "")</text>
+                    }
+                    <text>]</text>
+                    if (i < rows) { <text>,</text> }
+                }
             ]
         };
     </script>
@@ -36,6 +60,7 @@
     </div>
     <div>
         <button id="startOverButton">Start Over</button>
+        <button id="newGameButton">New Game</button>
         <span id="timer">Time: 0s</span>
     </div>
     <div id="result"></div>
