@@ -10,39 +10,42 @@ namespace zipgame.Models
         // Cells: 0 means empty; a positive number indicates a numbered cell.
         public int[,] Cells { get; set; } = default!;
 
-        // Walls are represented as two Boolean matrices.
-        // VerticalWalls[r, c] is true if there's a wall between cell (r, c-1) and (r, c).
-        // Dimensions: [Rows, Cols+1]
+        // Walls: vertical walls between columns (dimensions: [Rows, Cols+1])
         public bool[,] VerticalWalls { get; set; } = default!;
-        // HorizontalWalls[r, c] is true if there's a wall between cell (r-1, c) and (r, c).
-        // Dimensions: [Rows+1, Cols]
+        // Walls: horizontal walls between rows (dimensions: [Rows+1, Cols])
         public bool[,] HorizontalWalls { get; set; } = default!;
 
         private static Random rand = new Random();
 
         public static GameBoard CreateDefaultBoard()
         {
-            // Increase complexity: use an 8x8 grid.
-            int rows = 8, cols = 8;
+            // To balance performance and complexity, choose a board size randomly between 5 and 7.
+            int size = rand.Next(5, 8); // 5,6,or 7.
+            int rows = size, cols = size;
             int total = rows * cols;
 
             // Generate a random Hamiltonian path using DFS.
             var path = GenerateHamiltonianPath(rows, cols);
-            // Fallback to a snake-ordered path if DFS fails.
             if (path == null || path.Count != total)
             {
+                // Fallback: use snake-ordered path.
                 path = GenerateSnakePath(rows, cols);
             }
 
             // Create cells array.
             int[,] cells = new int[rows, cols];
 
-            // Try to select 5 numbered cells along the path that are not immediately adjacent (horizontally or vertically).
-            var numberedPositions = SelectNumberedCells(path, 5);
-            // If selection fails, fallback to candidate indices.
+            // Choose numbered cells count equal to board size.
+            int numberedCount = size;
+            var numberedPositions = SelectNumberedCells(path, numberedCount);
             if (numberedPositions == null)
             {
-                int[] indices = new int[] { 0, total / 5, (2 * total) / 5, (3 * total) / 5, total - 1 };
+                // Fallback: choose evenly spaced indices.
+                int[] indices = new int[numberedCount];
+                for (int i = 0; i < numberedCount; i++)
+                {
+                    indices[i] = i * total / numberedCount;
+                }
                 numberedPositions = new List<(int row, int col)>();
                 foreach (int idx in indices)
                     numberedPositions.Add(path[idx]);
@@ -54,14 +57,25 @@ namespace zipgame.Models
                 cells[pos.row, pos.col] = i + 1;
             }
 
+            // Determine wall probability based on board size.
+            double wallProb = size switch
+            {
+                5 => 0.3,
+                6 => 0.25,
+                _ => 0.2,
+            };
+
             // Generate walls.
             // VerticalWalls: dimensions [rows, cols+1]
             bool[,] verticalWalls = new bool[rows, cols + 1];
-            // Set boundary walls.
             for (int r = 0; r < rows; r++)
             {
                 verticalWalls[r, 0] = true;
                 verticalWalls[r, cols] = true;
+                for (int c = 1; c < cols; c++)
+                {
+                    verticalWalls[r, c] = (rand.NextDouble() < wallProb);
+                }
             }
             // HorizontalWalls: dimensions [rows+1, cols]
             bool[,] horizontalWalls = new bool[rows + 1, cols];
@@ -69,37 +83,23 @@ namespace zipgame.Models
             {
                 horizontalWalls[0, c] = true;
                 horizontalWalls[rows, c] = true;
-            }
-            // Initialize internal walls randomly (30% chance), except for edges used in the Hamiltonian path.
-            // First, mark all internal walls randomly.
-            for (int r = 0; r < rows; r++)
-            {
-                for (int c = 1; c < cols; c++)
+                for (int r = 1; r < rows; r++)
                 {
-                    verticalWalls[r, c] = (rand.NextDouble() < 0.3);
+                    horizontalWalls[r, c] = (rand.NextDouble() < wallProb);
                 }
             }
-            for (int r = 1; r < rows; r++)
-            {
-                for (int c = 0; c < cols; c++)
-                {
-                    horizontalWalls[r, c] = (rand.NextDouble() < 0.3);
-                }
-            }
-            // Then, for every consecutive pair in the Hamiltonian path, ensure the wall is open.
+            // For every consecutive pair in the Hamiltonian path, force open the wall between them.
             for (int i = 0; i < path.Count - 1; i++)
             {
                 var p = path[i];
                 var q = path[i + 1];
-                // Horizontal move.
                 if (p.row == q.row && Math.Abs(p.col - q.col) == 1)
                 {
                     int r = p.row;
                     int c = Math.Min(p.col, q.col) + 1;
                     verticalWalls[r, c] = false;
                 }
-                // Vertical move.
-                if (p.col == q.col && Math.Abs(p.row - q.row) == 1)
+                else if (p.col == q.col && Math.Abs(p.row - q.row) == 1)
                 {
                     int c = p.col;
                     int r = Math.Min(p.row, q.row) + 1;
@@ -117,7 +117,7 @@ namespace zipgame.Models
             };
         }
 
-        // Try to greedily select 'count' cells along the path that are not immediately adjacent horizontally or vertically.
+        // Select 'count' cells along the path that are not immediately adjacent (horizontally or vertically).
         private static List<(int row, int col)>? SelectNumberedCells(List<(int row, int col)> path, int count)
         {
             var selected = new List<(int row, int col)>();
