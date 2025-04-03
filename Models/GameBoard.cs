@@ -15,40 +15,57 @@ namespace zipgame.Models
         // Walls: horizontal walls between rows (dimensions: [Rows+1, Cols])
         public bool[,] HorizontalWalls { get; set; } = default!;
 
+        // Difficulty label.
+        public string Difficulty { get; set; } = "";
+
         private static Random rand = new Random();
 
         public static GameBoard CreateDefaultBoard()
         {
-            // To balance performance and complexity, choose a board size randomly between 5 and 7.
+            // Choose a board size randomly between 5 and 7.
             int size = rand.Next(5, 8); // 5,6,or 7.
             int rows = size, cols = size;
             int total = rows * cols;
+
+            // Determine difficulty.
+            string difficulty = size switch
+            {
+                5 => "Easy",
+                6 => "Medium",
+                _ => "Hard",
+            };
 
             // Generate a random Hamiltonian path using DFS.
             var path = GenerateHamiltonianPath(rows, cols);
             if (path == null || path.Count != total)
             {
-                // Fallback: use snake-ordered path.
+                // Fallback: use a snake-ordered path.
                 path = GenerateSnakePath(rows, cols);
             }
 
             // Create cells array.
             int[,] cells = new int[rows, cols];
 
-            // Choose numbered cells count equal to board size.
+            // We want one numbered cell per row and per column.
             int numberedCount = size;
             var numberedPositions = SelectNumberedCells(path, numberedCount);
-            if (numberedPositions == null)
+            if (numberedPositions == null || numberedPositions.Count != numberedCount)
             {
-                // Fallback: choose evenly spaced indices.
-                int[] indices = new int[numberedCount];
-                for (int i = 0; i < numberedCount; i++)
-                {
-                    indices[i] = i * total / numberedCount;
-                }
+                // Fallback: choose one per row by scanning the path.
                 numberedPositions = new List<(int row, int col)>();
-                foreach (int idx in indices)
-                    numberedPositions.Add(path[idx]);
+                var rowsUsed = new HashSet<int>();
+                var colsUsed = new HashSet<int>();
+                foreach (var pos in path)
+                {
+                    if (!rowsUsed.Contains(pos.row) && !colsUsed.Contains(pos.col))
+                    {
+                        numberedPositions.Add(pos);
+                        rowsUsed.Add(pos.row);
+                        colsUsed.Add(pos.col);
+                        if (numberedPositions.Count == numberedCount)
+                            break;
+                    }
+                }
             }
             // Mark the numbered cells.
             for (int i = 0; i < numberedPositions.Count; i++)
@@ -57,6 +74,7 @@ namespace zipgame.Models
                 cells[pos.row, pos.col] = i + 1;
             }
 
+            // Generate walls.
             // Determine wall probability based on board size.
             double wallProb = size switch
             {
@@ -65,7 +83,6 @@ namespace zipgame.Models
                 _ => 0.2,
             };
 
-            // Generate walls.
             // VerticalWalls: dimensions [rows, cols+1]
             bool[,] verticalWalls = new bool[rows, cols + 1];
             for (int r = 0; r < rows; r++)
@@ -113,34 +130,29 @@ namespace zipgame.Models
                 Cols = cols,
                 Cells = cells,
                 VerticalWalls = verticalWalls,
-                HorizontalWalls = horizontalWalls
+                HorizontalWalls = horizontalWalls,
+                Difficulty = difficulty
             };
         }
 
-        // Select 'count' cells along the path that are not immediately adjacent (horizontally or vertically).
+        // Select 'count' cells along the path so that each row and each column gets exactly one.
         private static List<(int row, int col)>? SelectNumberedCells(List<(int row, int col)> path, int count)
         {
             var selected = new List<(int row, int col)>();
+            var rowsUsed = new HashSet<int>();
+            var colsUsed = new HashSet<int>();
             foreach (var pos in path)
             {
-                bool valid = true;
-                foreach (var s in selected)
-                {
-                    if ((s.row == pos.row && Math.Abs(s.col - pos.col) == 1) ||
-                        (s.col == pos.col && Math.Abs(s.row - pos.row) == 1))
-                    {
-                        valid = false;
-                        break;
-                    }
-                }
-                if (valid)
+                if (!rowsUsed.Contains(pos.row) && !colsUsed.Contains(pos.col))
                 {
                     selected.Add(pos);
+                    rowsUsed.Add(pos.row);
+                    colsUsed.Add(pos.col);
                     if (selected.Count == count)
                         return selected;
                 }
             }
-            return null;
+            return selected.Count == count ? selected : null;
         }
 
         // Generate a Hamiltonian path using DFS.

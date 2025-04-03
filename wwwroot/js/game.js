@@ -21,8 +21,9 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('timer').innerText = "Time: " + elapsedSeconds + "s";
     }
 
-    // --- VALIDATION: Accept any Hamiltonian path that visits each cell exactly once
-    // and in which the numbered cells are visited in ascending order. ---
+    // --- VALIDATION ---
+    // Accept any Hamiltonian path that visits each cell exactly once and
+    // where the numbered cells (if any) are encountered in ascending order.
     function checkSolution() {
         if (path.length !== totalCells) return false;
         const seen = new Set();
@@ -49,7 +50,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     // --- END VALIDATION ---
 
-    // Draw grid lines.
     function drawGrid() {
         ctx.strokeStyle = 'black';
         ctx.lineWidth = 1;
@@ -67,15 +67,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Draw walls with distinct color and thickness.
     function drawWalls() {
-        // Vertical walls.
-        ctx.strokeStyle = 'darkred';
-        ctx.lineWidth = 3;
+        // Set wall style: a new color, thicker line (9 instead of 3), and dashed pattern.
+        ctx.strokeStyle = 'purple'; // New color
+        ctx.lineWidth = 9;          // Thicker wall lines
+        ctx.setLineDash([10, 5]);   // Dashed line pattern
+    
+        // Draw vertical walls.
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols + 1; c++) {
                 if (boardConfig.verticalWalls[r][c]) {
-                    // Draw a vertical line at the edge between columns c-1 and c.
                     const x = c * cellWidth;
                     ctx.beginPath();
                     ctx.moveTo(x, r * cellHeight);
@@ -84,9 +85,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         }
-        // Horizontal walls.
-        ctx.strokeStyle = 'darkred';
-        ctx.lineWidth = 3;
+        // Draw horizontal walls.
         for (let r = 0; r < rows + 1; r++) {
             for (let c = 0; c < cols; c++) {
                 if (boardConfig.horizontalWalls[r][c]) {
@@ -98,9 +97,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         }
+        // Reset dash pattern after drawing walls.
+        ctx.setLineDash([]);
     }
+    
 
-    // Draw numbered cells.
     function drawNumberedCells() {
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
@@ -118,7 +119,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // Draw the user's path with a thick blue line.
     function drawPath() {
         if (path.length === 0) return;
         ctx.beginPath();
@@ -156,20 +156,18 @@ document.addEventListener('DOMContentLoaded', function () {
         drawPath();
     }
 
-    // Check if a move is allowed by walls.
+    // Check if a move from 'from' to 'to' is allowed (i.e. adjacent and no wall in between).
     function isMoveAllowed(from, to) {
         if (from.row === to.row) {
-            if (to.col === from.col + 1) {
+            if (to.col === from.col + 1)
                 return boardConfig.verticalWalls[from.row][from.col + 1] === false;
-            } else if (to.col === from.col - 1) {
+            else if (to.col === from.col - 1)
                 return boardConfig.verticalWalls[from.row][from.col] === false;
-            }
         } else if (from.col === to.col) {
-            if (to.row === from.row + 1) {
+            if (to.row === from.row + 1)
                 return boardConfig.horizontalWalls[from.row + 1][from.col] === false;
-            } else if (to.row === from.row - 1) {
+            else if (to.row === from.row - 1)
                 return boardConfig.horizontalWalls[from.row][from.col] === false;
-            }
         }
         return false;
     }
@@ -227,7 +225,10 @@ document.addEventListener('DOMContentLoaded', function () {
             const timeTaken = Math.floor((Date.now() - startTime) / 1000);
             document.getElementById('result').innerText =
                 "Great Job! You finished in " + timeTaken + " seconds.";
+            // Disable the Start Over button when finished.
+            document.getElementById('startOverButton').disabled = true;
         }
+        
     }
 
     function endDrawing(e) {
@@ -246,8 +247,10 @@ document.addEventListener('DOMContentLoaded', function () {
     canvas.addEventListener('touchcancel', endDrawing);
 
     document.getElementById('startOverButton').addEventListener('click', function() {
-        location.reload();
+        path = [];
+        redraw();
     });
+    
     document.getElementById('newGameButton').addEventListener('click', function() {
         window.location.href = "/Game/NewGame";
     });

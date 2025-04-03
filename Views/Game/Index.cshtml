@@ -2,14 +2,28 @@
 
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
-    ViewData["Title"] = "Zip Game";
+    ViewData["Title"] = "Zip Game - " + Model.Difficulty;
     var rows = Model.Rows;
     var cols = Model.Cols;
 }
 
+<div>
+    <h1>@ViewData["Title"]</h1>
+    <p>Difficulty: @Model.Difficulty</p>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="500" height="500"></canvas>
+    </div>
+    <div>
+        <button id="startOverButton">Start Over</button>
+        <button id="newGameButton">New Game</button>
+        <span id="timer">Time: 0s</span>
+    </div>
+    <div id="result"></div>
+</div>
+
 @section Scripts {
     <script>
-        // Pass puzzle information from server to client.
+        // Pass puzzle information from the server to the client.
         var boardConfig = {
             rows: @rows,
             cols: @cols,
@@ -52,16 +66,3 @@
         };
     </script>
 }
-
-<div>
-    <h1>@ViewData["Title"]</h1>
-    <div id="game-container">
-        <canvas id="gameCanvas" width="500" height="500"></canvas>
-    </div>
-    <div>
-        <button id="startOverButton">Start Over</button>
-        <button id="newGameButton">New Game</button>
-        <span id="timer">Time: 0s</span>
-    </div>
-    <div id="result"></div>
-</div>

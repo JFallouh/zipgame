@@ -16,7 +16,7 @@ namespace zipgame.Controllers
         // GET: /Game/NewGame
         public IActionResult NewGame()
         {
-            // Generate a completely new board (with a different size/solution).
+            // Generate a completely new board (with a different size and solution).
             var board = GameBoard.CreateDefaultBoard();
             return View("Index", board);
         }
