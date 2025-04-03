@@ -1,4 +1,5 @@
 @model zipgame.Models.GameBoard
+
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
     ViewData["Title"] = "Zip Game";
@@ -8,7 +9,7 @@
 
 @section Scripts {
     <script>
-        // Prepare board configuration object for the client.
+        // Pass puzzle information from the server to the client.
         var boardConfig = {
             rows: @rows,
             cols: @cols,
@@ -34,8 +35,8 @@
         <canvas id="gameCanvas" width="500" height="500"></canvas>
     </div>
     <div>
-        <button id="hintButton">Hint</button>
-        <button id="checkButton">Check Solution</button>
+        <button id="startOverButton">Start Over</button>
+        <span id="timer">Time: 0s</span>
     </div>
     <div id="result"></div>
 </div>
