@@ -1,0 +1,41 @@
+@model zipgame.Models.GameBoard
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Zip Game";
+    var rows = Model.Rows;
+    var cols = Model.Cols;
+}
+
+@section Scripts {
+    <script>
+        // Prepare board configuration object for the client.
+        var boardConfig = {
+            rows: @rows,
+            cols: @cols,
+            cells: [
+                @for (int i = 0; i < rows; i++)
+                {
+                    <text>[</text>
+                    for (int j = 0; j < cols; j++)
+                    {
+                        <text>@Model.Cells[i, j]@((j < cols - 1) ? "," : "")</text>
+                    }
+                    <text>]</text>
+                    if (i < rows - 1) { <text>,</text> }
+                }
+            ]
+        };
+    </script>
+}
+
+<div>
+    <h1>@ViewData["Title"]</h1>
+    <div id="game-container">
+        <canvas id="gameCanvas" width="500" height="500"></canvas>
+    </div>
+    <div>
+        <button id="hintButton">Hint</button>
+        <button id="checkButton">Check Solution</button>
+    </div>
+    <div id="result"></div>
+</div>
